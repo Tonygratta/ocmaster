@@ -43,21 +43,21 @@ Cделано на основе [Habr-статьи](https://habr.com/ru/articles
 - [Настраиваем dnsmasq в качестве сервера DNS](#dnsmasq)
 - [Устанавливаем и настраиваем HAproxy при необходимости](#haproxy)
 
-## Получаем доступ к VPS
 <a id="vps"></a>
+## Получаем доступ к VPS
 
 Рекомендуемые ОС:
-- Debian 12
 - Debian 13
-- Ubuntu 22
 - Ubuntu 24
+
+Другие версии могут содержать несовместимую версию ocserv
 
 Не все провайдеры предоставляют IPv6.
 
 Недорогие зарубежные серверы с оплатой из России с высокой вероятностью попадут со временем под ковровые блокировки РКН. Поэтому для корпоративных нужд при отсутствии необходимости доступа за рубеж разумнее всего выбирать российские площадки и избегать таких хостеров как hostvds.
 
-## Меняем порт SSH для доступа к серверу
 <a id="ssh-set"></a>
+## Меняем порт SSH для доступа к серверу
 
 Файл конфигурации `/etc/ssh/sshd_config`
 - Открываем файл `sudo vim /etc/ssh/sshd_config`
@@ -66,13 +66,13 @@ Cделано на основе [Habr-статьи](https://habr.com/ru/articles
 - Сохраняем `<Esc> :wq <Enter>`
 - Перегружаем службу SSH сервера `sudo systemctl reload sshd`
 
-## Настраиваем доступ к серверу по ключу
 <a id="key-access"></a>
+## Настраиваем доступ к серверу по ключу
 
 Under construction.
 
-## Настраиваем доменное имя для публичных адресов сервера
 <a id="dns"></a>
+## Настраиваем доменное имя для публичных адресов сервера
 
 Некоторые провайдеры предоставляют доменное имя в комплекте с публичным адресом. Другие имеют опцию в личном кабинете. В остальных случаях можно воспользоваться одним из многих бесплатных вариантов, таких как:
 
@@ -80,18 +80,19 @@ Under construction.
 - <https://freedns.afraid.org/>
 - <https://dynv6.com>
 
-## Получаем сертификат letsencrypt при помощи certbot
 <a id="letsencrypt"></a>
+## Получаем сертификат letsencrypt при помощи certbot
 
 Under construction.
 
-## Устанавливаем и настраиваем UFW
 <a id="ufw"></a>
+## Устанавливаем и настраиваем UFW
 
 `sudo apt install ufw`
 
-### Открываем порты 80, 443, порт SSH
 <a id="set-ports"></a>
+### Открываем порты 80, 443, порт SSH
+
 ```
 sudo ufw allow 443/tcp
 sudo ufw allow 80/tcp
@@ -99,8 +100,8 @@ sudo ufw allow 40257/tcp
 sudo ufw allow in on vpns0 to any proto udp port 53
 ```
 
-### Включаем роутинг
 <a id="set-route"></a>
+### Включаем роутинг
 
 В файле `/etc/ufw/sysctl.conf` раскомментируем строки 
 ```
@@ -112,8 +113,8 @@ net/ipv6/conf/all/forwarding=1
 Разрешаем маршрутизацию правилом
 `ufw route allow in on vpns0`
 
-### Активируем NAT правкой конфиг-файлов
 <a id="set-nat"></a>
+### Активируем NAT правкой конфиг-файлов
 
 Определимся с диапазоном IP клиентов. Например:
 - IPv4 192.168.99.0/24
@@ -139,8 +140,8 @@ COMMIT
 # Added with OC_Master <END>
 ```
 
-## Устанавливаем и настраиваем ocserv
 <a id="set-ocserv"></a>
+## Устанавливаем и настраиваем ocserv
 
 `sudo apt install ocserv`
 
@@ -201,13 +202,13 @@ camouflage_secret = "vsdo84"
 camouflage_realm = "Administrator login"
 ```
 
-## Создаём пользователей сервера
 <a id="users"></a>
+## Создаём пользователей сервера
 
 `ocpasswd -c /etc/ocserv/ocpasswd user99`
 
-## Настраиваем dnsmasq в качестве сервера DNS
 <a id="dnsmasq"></a>
+## Настраиваем dnsmasq в качестве сервера DNS
 
 Файл конфигурации `/etc/dnsmasq.conf`
 
@@ -218,8 +219,8 @@ interface=lo
 interface=vpns0
 ```
 
-## Устанавливаем и настраиваем HAproxy при необходимости
 <a id="haproxy"></a>
+## Устанавливаем и настраиваем HAproxy при необходимости
 
 `sudo apt install haproxy`
 
@@ -255,3 +256,4 @@ backend b3
         balance roundrobin
         server b3 127.0.0.1:446
 ```
+
