@@ -24,7 +24,7 @@ Cделано на основе [Habr-статьи](https://habr.com/ru/articles
 - /etc/ufw/before.rules
 - /etc/ufw/before6.rules
 - /etc/ocserv/ocserv.conf
-- /etc/ocserv/ocpasswd
+- /etc/ocserv/passwd
 - /etc/dnsmasq.conf
 
 Общий порядок установки:
@@ -33,7 +33,7 @@ Cделано на основе [Habr-статьи](https://habr.com/ru/articles
 - [Меняем порт SSH для доступа к серверу](#ssh-set)
 - [Настраиваем доступ к серверу по ключу](#key-access)
 - [Настраиваем доменное имя для публичных адресов сервера](#dns)
-- [Получаем сертификат letsencrypt при помощи certbot](#letsencrypt)
+- [Получаем сертификат letsencrypt](#letsencrypt)
 - [Устанавливаем и настраиваем UFW:](#ufw)
 	- [Открываем порты 80, 443, порт SSH](#set-ports)
 	- [Включаем роутинг](#set-route)
@@ -64,7 +64,18 @@ Cделано на основе [Habr-статьи](https://habr.com/ru/articles
 - Ищем параметр `Port`
 - Раскомментируем, меняем на кастомный, например `40257`
 - Сохраняем `<Esc> :wq <Enter>`
-- Перегружаем службу SSH сервера `sudo systemctl reload sshd`
+- Перегружаем службу SSH сервера 
+	- для версий ОС со службой sshd `sudo systemctl reload sshd`
+	- для версий ОС с сокетами `systemctl daemon-reload && systemctl restart ssh.socket`
+
+Код:
+```
+sed -i -E "s/^#?Port.*$/Port $SSHPORT/" /etc/ssh/sshd_config
+#
+systemctl is-active ssh.socket | grep -qw 'active' && systemctl daemon-reload && systemctl restart ssh.socket
+#
+systemctl is-active sshd.service | grep -qw 'active' && systemctl reload sshd.service
+```
 
 <a id="key-access"></a>
 ## Настраиваем доступ к серверу по ключу
@@ -74,16 +85,19 @@ Under construction.
 <a id="dns"></a>
 ## Настраиваем доменное имя для публичных адресов сервера
 
-Некоторые провайдеры предоставляют доменное имя в комплекте с публичным адресом. Другие имеют опцию в личном кабинете. В остальных случаях можно воспользоваться одним из многих бесплатных вариантов, таких как:
+Некоторые провайдеры предоставляют доменное имя в комплекте с публичным адресом.Другие имеют опцию в личном кабинете.
+В остальных случаях можно воспользоваться одним из многих бесплатных вариантов, таких как:
 
 - <http://hldns.ru/>
 - <https://freedns.afraid.org/>
 - <https://dynv6.com>
 
+Можно также вообще не получать доменное имя и получить сертификат на IP-адрес. 
+Всё же это не рекомендуется, так как накладывает ряд ограничений при эксплуатации - нельзя использовать IPv6, нельзя демультиплексировать клиентов по SNI.
 <a id="letsencrypt"></a>
-## Получаем сертификат letsencrypt при помощи certbot
+## Получаем сертификат letsencrypt 
 
-Under construction.
+Сделать это можно при помощи [certbot](https://certbot.eff.org/) или [acmesh](https://github.com/acmesh-official/acme.sh)
 
 <a id="ufw"></a>
 ## Устанавливаем и настраиваем UFW
@@ -96,7 +110,7 @@ Under construction.
 ```
 sudo ufw allow 443/tcp
 sudo ufw allow 80/tcp
-sudo ufw allow 40257/tcp
+sudo ufw allow 22/tcp
 sudo ufw allow in on vpns0 to any proto udp port 53
 ```
 
@@ -124,20 +138,20 @@ net/ipv6/conf/all/forwarding=1
 
 В конец файла `/etc/ufw/before.rules` добавим строки 
 ```
-# Added with OC_Master <START>
+# OCMASTER-START
 *nat
 -A POSTROUTING -s 192.168.99.0/24 -o eth0 -j MASQUERADE
 COMMIT
-# Added with OC_Master <END>
+# OCMASTER-END
 ```
 
 В конец файла `/etc/ufw/before6.rules` добавим строки 
 ```
-# Added with OC_Master <START>
+# OCMASTER-START
 *nat
 -A POSTROUTING -s fda9:4e0a:7e3b::/48 -o eth0 -j MASQUERADE
 COMMIT
-# Added with OC_Master <END>
+# OCMASTER-END
 ```
 
 <a id="set-ocserv"></a>
@@ -149,7 +163,7 @@ COMMIT
 
 Ключевые параметры:
 ```
-auth = "plain[passwd=/etc/ocserv/ocpasswd]"
+auth = "plain[passwd=/etc/ocserv/passwd]"
 tcp-port = 443
 #udp-port = 443
 run-as-user = ocserv
@@ -185,8 +199,7 @@ log-level = 2
 device = vpns
 predictable-ips = true
 default-domain = example.com
-ipv4-network = 192.168.99.0
-ipv4-netmask = 255.255.255.0
+ipv4-network = 192.168.99.0/24
 ipv6-network = fda9:4e0a:7e3b:03ea::/48
 ipv6-subnet-prefix = 128
 tunnel-all-dns = true
@@ -197,15 +210,16 @@ cisco-client-compat = true
 dtls-legacy = true
 cisco-svc-client-compat = false
 client-bypass-protocol = false
+compression = false
 camouflage = true
-camouflage_secret = "vsdo84"
+camouflage_secret = "random_sequence"
 camouflage_realm = "Administrator login"
 ```
 
 <a id="users"></a>
 ## Создаём пользователей сервера
 
-`ocpasswd -c /etc/ocserv/ocpasswd user99`
+`ocpasswd -c /etc/ocserv/passwd user99`
 
 <a id="dnsmasq"></a>
 ## Настраиваем dnsmasq в качестве сервера DNS
