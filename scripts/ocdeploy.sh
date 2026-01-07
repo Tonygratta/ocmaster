@@ -214,28 +214,28 @@ systemctl restart ocserv
 #########################
 
 # Install acme.sh
-# curl --no-progress-meter -Lo /usr/local/bin/acme.sh 'https://raw.githubusercontent.com/acmesh-official/acme.sh/refs/heads/master/acme.sh'
-# chmod +x /usr/local/bin/acme.sh
-# /usr/local/bin/acme.sh --install-cronjob || true
+curl --no-progress-meter -Lo /usr/local/bin/acme.sh 'https://raw.githubusercontent.com/acmesh-official/acme.sh/refs/heads/master/acme.sh'
+chmod +x /usr/local/bin/acme.sh
+/usr/local/bin/acme.sh --install-cronjob || true
 
 
-# # Issue certificate
-# acme.sh --issue \
-  # -d "$PUBHOST" \
-  # --alpn \
-  # --force \
-  # --pre-hook "systemctl stop ocserv || true" \
-  # --post-hook "[ -e /etc/ocserv/server-cert.pem -a -e /etc/ocserv/server-fullchain.pem ] && systemctl restart ocserv || true" \
-  # --server letsencrypt \
-  # --certificate-profile shortlived \
-  # --days 3
+# Issue certificate
+acme.sh --issue \
+  -d "$PUBHOST" \
+  --alpn \
+  --force \
+  --pre-hook "systemctl stop ocserv || true" \
+  --post-hook "[ -e /etc/ocserv/server-cert.pem -a -e /etc/ocserv/server-fullchain.pem ] && systemctl restart ocserv || true" \
+  --server letsencrypt \
+  --certificate-profile shortlived \
+  --days 3
 
-# acme.sh --install-cert \
-  # -d "$PUBHOST" \
-  # --cert-file /etc/ocserv/server-cert.pem \
-  # --key-file /etc/ocserv/server-key.pem \
-  # --fullchain-file /etc/ocserv/server-fullchain.pem \
-  # --reloadcmd "systemctl restart ocserv"
+acme.sh --install-cert \
+  -d "$PUBHOST" \
+  --cert-file /etc/ocserv/server-cert.pem \
+  --key-file /etc/ocserv/server-key.pem \
+  --fullchain-file /etc/ocserv/server-fullchain.pem \
+  --reloadcmd "systemctl restart ocserv"
 
 # Final message
 cat <<EOF
@@ -246,11 +246,13 @@ Installation is finished!
 
 Connect URL: https://${PUBHOST}:443/?${SKEY}
 
-Protocol: OpenConnect
-Port:     443
-Host:     ${PUBHOST}
-User:     ${USER1}
-Proxy password: ${PASS1}
+Protocol:       OpenConnect
+                TCP only. Don't forget to
+                disable	UDP in the client settings!
+Port:           443
+Host:           ${PUBHOST}
+User1 login:    ${USER1}
+User1 password: ${PASS1}
 
 EOF
 

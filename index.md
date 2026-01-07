@@ -60,12 +60,12 @@ Cделано на основе [Habr-статьи](https://habr.com/ru/articles
 ## Меняем порт SSH для доступа к серверу
 
 Файл конфигурации `/etc/ssh/sshd_config`
-- Открываем файл `sudo vim /etc/ssh/sshd_config`
+- Открываем файл `vim /etc/ssh/sshd_config`
 - Ищем параметр `Port`
 - Раскомментируем, меняем на кастомный, например `40257`
 - Сохраняем `<Esc> :wq <Enter>`
 - Перегружаем службу SSH сервера 
-	- для версий ОС со службой sshd `sudo systemctl reload sshd`
+	- для версий ОС со службой sshd `systemctl reload sshd`
 	- для версий ОС с сокетами `systemctl daemon-reload && systemctl restart ssh.socket`
 
 Код:
@@ -102,16 +102,16 @@ Under construction.
 <a id="ufw"></a>
 ## Устанавливаем и настраиваем UFW
 
-`sudo apt install ufw`
+`apt install ufw`
 
 <a id="set-ports"></a>
 ### Открываем порты 80, 443, порт SSH
 
 ```
-sudo ufw allow 443/tcp
-sudo ufw allow 80/tcp
-sudo ufw allow 22/tcp
-sudo ufw allow in on vpns0 to any proto udp port 53
+ufw allow 443/tcp
+ufw allow 80/tcp
+ufw allow 22/tcp
+ufw allow in on vpns0 to any proto udp port 53
 ```
 
 <a id="set-route"></a>
@@ -157,7 +157,7 @@ COMMIT
 <a id="set-ocserv"></a>
 ## Устанавливаем и настраиваем ocserv
 
-`sudo apt install ocserv`
+`apt install ocserv`
 
 Файл конфигурации `/etc/ocserv/ocserv.conf`
 
@@ -236,7 +236,7 @@ interface=vpns0
 <a id="haproxy"></a>
 ## Устанавливаем и настраиваем HAproxy при необходимости
 
-`sudo apt install haproxy`
+`apt install haproxy`
 
 Файл конфигурации `/etc/haproxy/haproxy.cfg`
 
@@ -270,4 +270,3 @@ backend b3
         balance roundrobin
         server b3 127.0.0.1:446
 ```
-
