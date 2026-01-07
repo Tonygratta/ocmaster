@@ -8,21 +8,20 @@ class SSHApp:
     def __init__(self, root):
         self.root = root
         self.root.title("SSH Client")
-        self.root.geometry("500x450")
+        self.root.geometry("600x550")
         
         # Основной скрипт, который будет выполняться на сервере
-        #self.script_file = "scripts/deploy.sh"  # Имя файла скрипта по умолчанию
         self.bash_script = """#!/bin/bash
-echo "=== Системная информация ==="
+echo "=== System info ==="
 uname -a
 echo ""
-echo "=== Дисковое пространство ==="
+echo "=== Disk space ==="
 df -h
 echo ""
-echo "=== Использование памяти ==="
+echo "=== Memory usage ==="
 free -h
 echo ""
-echo "=== Запущенные процессы (первые 10) ==="
+echo "=== First 10 processes ==="
 ps aux | head -n 10
 """
         
@@ -31,29 +30,29 @@ ps aux | head -n 10
         
     def setup_ui(self):
         # Фрейм для ввода данных
-        input_frame = ttk.LabelFrame(self.root, text="Параметры подключения", padding=10)
+        input_frame = ttk.LabelFrame(self.root, text="Connection to server", padding=10)
         input_frame.pack(fill="x", padx=10, pady=5)
         
         # Поле для ввода хоста
-        ttk.Label(input_frame, text="Хост:").grid(row=0, column=0, sticky="w", pady=2)
+        ttk.Label(input_frame, text="Host:").grid(row=0, column=0, sticky="w", pady=2)
         self.host_entry = ttk.Entry(input_frame, width=40)
         self.host_entry.grid(row=0, column=1, padx=5, pady=2)
         self.host_entry.insert(0, "192.168.1.54")  # Пример значения
         
         # Поле для ввода логина
-        ttk.Label(input_frame, text="Логин:").grid(row=1, column=0, sticky="w", pady=2)
+        ttk.Label(input_frame, text="Login:").grid(row=1, column=0, sticky="w", pady=2)
         self.username_entry = ttk.Entry(input_frame, width=40)
         self.username_entry.grid(row=1, column=1, padx=5, pady=2)
         self.username_entry.insert(0, "root")  # Пример значения
         
         # Поле для ввода пароля
-        ttk.Label(input_frame, text="Пароль:").grid(row=2, column=0, sticky="w", pady=2)
+        ttk.Label(input_frame, text="password:").grid(row=2, column=0, sticky="w", pady=2)
         self.password_entry = ttk.Entry(input_frame, width=40, show="*")
         self.password_entry.grid(row=2, column=1, padx=5, pady=2)
         self.password_entry.insert(0, "pass1234")  # Пример значения
         
         # Порт (опционально)
-        ttk.Label(input_frame, text="Порт:").grid(row=3, column=0, sticky="w", pady=2)
+        ttk.Label(input_frame, text="SSH port:").grid(row=3, column=0, sticky="w", pady=2)
         self.port_entry = ttk.Entry(input_frame, width=10)
         self.port_entry.grid(row=3, column=1, sticky="w", padx=5, pady=2)
         self.port_entry.insert(0, "22")
@@ -75,10 +74,10 @@ ps aux | head -n 10
         self.start_button3.pack(side="left", padx=5)
         
         # Кнопка для очистки вывода
-        ttk.Button(button_frame, text="Очистить вывод", command=self.clear_output).pack(side="left", padx=5)
+        ttk.Button(button_frame, text="Clear output", command=self.clear_output).pack(side="left", padx=5)
         
         # Область вывода
-        output_frame = ttk.LabelFrame(self.root, text="Вывод команды", padding=10)
+        output_frame = ttk.LabelFrame(self.root, text="Result", padding=10)
         output_frame.pack(fill="both", expand=True, padx=10, pady=5)
         
         # Текстовое поле для вывода
@@ -87,7 +86,7 @@ ps aux | head -n 10
         
         # Статус бар
         self.status_var = tk.StringVar()
-        self.status_var.set("Готово к подключению")
+        self.status_var.set("Ready to connect")
         self.status_bar = ttk.Label(self.root, textvariable=self.status_var, relief="sunken")
         self.status_bar.pack(side="bottom", fill="x")
         
@@ -99,17 +98,17 @@ ps aux | head -n 10
                     self.bash_script = f.read()
                               
         except Exception as e:
-            messagebox.showerror("Ошибка", f"Ошибка при чтении файла: {str(e)}")
+            messagebox.showerror("Error", f"Error when reading file: {str(e)}")
 
     def start_ssh1(self):
-        choice = messagebox.askquestion("ВНИМАНИЕ", "Это перепишет настройки действующего сервера и пароли. Продолжить?", icon='warning')
+        choice = messagebox.askquestion("WARNING", "This action will rewrite the current server settings and user passwords. Proceed?", icon='warning')
         if choice == 'no':
             return
         self.start_ssh("scripts/ocdeploy.sh")
     def start_ssh2(self):
         self.start_ssh("scripts/ocstatus.sh")
     def start_ssh3(self):
-        choice = messagebox.askquestion("ВНИМАНИЕ", "Это перепишет пароли пользователей. Продолжить?", icon='warning')
+        choice = messagebox.askquestion("WARNING", "This action will change the user passwords. Proceed?", icon='warning')
         if choice == 'no':
             return
         self.start_ssh("scripts/pass-reload.sh")      
@@ -123,21 +122,21 @@ ps aux | head -n 10
         self.load_script(scriptname)
         # Проверка заполнения полей
         if not all([host, username, password]):
-            messagebox.showerror("Ошибка", "Заполните все поля: хост, логин и пароль")
+            messagebox.showerror("ERROR", "Fill in all the connection parameters")
             return
         
         # Преобразуем порт в число
         try:
             port = int(port) if port else 22
         except ValueError:
-            messagebox.showerror("Ошибка", "Порт должен быть числом")
+            messagebox.showerror("Error", "SSH port is not number")
             return
         
         # Блокируем кнопку на время выполнения
         self.start_button1.config(state="disabled")
         self.start_button2.config(state="disabled")
         self.start_button3.config(state="disabled")
-        self.status_var.set("Подключение...")
+        self.status_var.set("Connecting...")
         
         # Запускаем подключение в отдельном потоке
         thread = threading.Thread(
@@ -163,7 +162,7 @@ ps aux | head -n 10
                 timeout=10
             )
             
-            self.update_status("Подключено. Выполнение скрипта...")
+            self.update_status("Connected. Running script...")
             
             # Выполняем скрипт
             stdin, stdout, stderr = client.exec_command(self.bash_script)
@@ -177,27 +176,27 @@ ps aux | head -n 10
             
             # Выводим результат в GUI
             self.root.after(0, self.show_output, output, error)
-            self.root.after(0, self.update_status, "Выполнение завершено")
+            self.root.after(0, self.update_status, "Finished")
             
         except paramiko.AuthenticationException:
-            self.root.after(0, self.show_error, "Ошибка аутентификации. Проверьте логин/пароль")
+            self.root.after(0, self.show_error, "Auth error. Check login/password")
         except paramiko.SSHException as e:
-            self.root.after(0, self.show_error, f"SSH ошибка: {str(e)}")
+            self.root.after(0, self.show_error, f"SSH error: {str(e)}")
         except Exception as e:
-            self.root.after(0, self.show_error, f"Ошибка подключения: {str(e)}")
+            self.root.after(0, self.show_error, f"Connection error: {str(e)}")
         finally:
             self.root.after(0, self.enable_start_button)
     
     def show_output(self, output, error):
         """Отображение вывода в текстовом поле"""
         self.output_text.insert(tk.END, "="*30 + "\n")
-        self.output_text.insert(tk.END, "СТАНДАРТНЫЙ ВЫВОД:\n")
+        self.output_text.insert(tk.END, "STDOUT:\n")
         self.output_text.insert(tk.END, "="*30 + "\n")
         self.output_text.insert(tk.END, output)
         
         if error:
             self.output_text.insert(tk.END, "\n" + "="*30 + "\n")
-            self.output_text.insert(tk.END, "ОШИБКИ:\n")
+            self.output_text.insert(tk.END, "STDERR:\n")
             self.output_text.insert(tk.END, "="*30 + "\n")
             self.output_text.insert(tk.END, error)
             
@@ -206,8 +205,8 @@ ps aux | head -n 10
     
     def show_error(self, message):
         """Отображение ошибки"""
-        messagebox.showerror("Ошибка", message)
-        self.update_status("Ошибка подключения")
+        messagebox.showerror("ERROR", message)
+        self.update_status("Connection error")
     
     def update_status(self, message):
         """Обновление статус-бара"""
