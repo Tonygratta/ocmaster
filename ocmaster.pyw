@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
 import paramiko
 import threading
+import random
 import os
 
 class SSHApp:
@@ -9,22 +10,7 @@ class SSHApp:
         self.root = root
         self.root.title("SSH Client")
         self.root.geometry("600x550")
-        
-        # Основной скрипт, который будет выполняться на сервере
-        self.bash_script = """#!/bin/bash
-echo "=== System info ==="
-uname -a
-echo ""
-echo "=== Disk space ==="
-df -h
-echo ""
-echo "=== Memory usage ==="
-free -h
-echo ""
-echo "=== First 10 processes ==="
-ps aux | head -n 10
-"""
-        
+                
         self.setup_ui()
         
         
@@ -56,6 +42,11 @@ ps aux | head -n 10
         self.port_entry = ttk.Entry(input_frame, width=10)
         self.port_entry.grid(row=3, column=1, sticky="w", padx=5, pady=2)
         self.port_entry.insert(0, "22")
+
+        # Смена порта
+        self.ssh_change = tk.BooleanVar(value = False)
+        self.ssh_change_checkbutton = ttk.Checkbutton(text="Change SSH port on next deploy", variable=self.ssh_change)
+        self.ssh_change_checkbutton.pack(padx=6, pady=6, anchor=tk.NW)
         
         # Фрейм для кнопок
         button_frame = ttk.Frame(self.root)
@@ -95,43 +86,72 @@ ps aux | head -n 10
         try:
             if os.path.exists(scriptname):
                 with open(scriptname, 'r', encoding='utf-8') as f:
-                    self.bash_script = f.read()
+                    bash_script = f.read()
                               
         except Exception as e:
             messagebox.showerror("Error", f"Error when reading file: {str(e)}")
-
-    def start_ssh1(self):
-        choice = messagebox.askquestion("WARNING", "This action will rewrite the current server settings and user passwords. Proceed?", icon='warning')
-        if choice == 'no':
-            return
-        self.start_ssh("scripts/ocdeploy.sh")
-    def start_ssh2(self):
-        self.start_ssh("scripts/ocstatus.sh")
-    def start_ssh3(self):
-        choice = messagebox.askquestion("WARNING", "This action will change the user passwords. Proceed?", icon='warning')
-        if choice == 'no':
-            return
-        self.start_ssh("scripts/pass-reload.sh")      
-    def start_ssh(self,scriptname):
-        """Запуск SSH-подключения в отдельном потоке"""
+            
+        return bash_script
+    
+    def parse_params (self):
         # Получаем данные из полей ввода
-        host = self.host_entry.get().strip()
-        username = self.username_entry.get().strip()
-        password = self.password_entry.get().strip()
-        port = self.port_entry.get().strip()
-        self.load_script(scriptname)
+        self.parsed_host = self.host_entry.get().strip()
+        self.parsed_username = self.username_entry.get().strip()
+        self.parsed_password = self.password_entry.get().strip()
+ 
         # Проверка заполнения полей
-        if not all([host, username, password]):
+        if not all([self.parsed_host, self.parsed_username, self.parsed_password]):
             messagebox.showerror("ERROR", "Fill in all the connection parameters")
             return
         
         # Преобразуем порт в число
+        raw_port = self.port_entry.get().strip()
         try:
-            port = int(port) if port else 22
+            self.parsed_conn_port = int(raw_port) if raw_port else 22
         except ValueError:
             messagebox.showerror("Error", "SSH port is not number")
             return
         
+        # Changing port if set
+        if self.ssh_change.get() == True:
+            self.new_port = str(random.randint(1024,49151))
+        else:
+            self.new_port = str(self.parsed_conn_port)
+        
+    def start_ssh1(self):
+        """Deploy"""
+        # Are you sure?
+        choice = messagebox.askquestion("WARNING", "This action will rewrite the current server settings and user passwords. Proceed?", icon='warning')
+        if choice == 'no':
+            return
+        
+        # Generating bash_script by setting parameters
+        self.parse_params()
+        bash_script = "#!/bin/bash\n"
+        bash_script = bash_script + f"SSHPORT='{self.new_port}'\n"
+        bash_script = bash_script + self.load_script("scripts/ocdeploy.sh")
+
+        # Executing generated bash_script
+        self.start_ssh(bash_script)
+
+    def start_ssh2(self):
+        """Server info"""
+        self.parse_params()
+        bash_script = self.load_script("scripts/ocstatus.sh")
+        self.start_ssh(bash_script)
+
+    def start_ssh3(self):
+        """REfresh passwords"""
+        self.parse_params()
+        choice = messagebox.askquestion("WARNING", "This action will change the user passwords. Proceed?", icon='warning')
+        if choice == 'no':
+            return
+        bash_script = self.load_script("scripts/pass-reload.sh")
+        self.start_ssh(bash_script)    
+
+    def start_ssh(self,bash_script):
+        """Запуск SSH-подключения в отдельном потоке"""
+    
         # Блокируем кнопку на время выполнения
         self.start_button1.config(state="disabled")
         self.start_button2.config(state="disabled")
@@ -141,12 +161,12 @@ ps aux | head -n 10
         # Запускаем подключение в отдельном потоке
         thread = threading.Thread(
             target=self.execute_ssh_command,
-            args=(host, port, username, password),
+            args=(self.parsed_host, self.parsed_conn_port, self.parsed_username, self.parsed_password, bash_script),
             daemon=True
         )
         thread.start()
         
-    def execute_ssh_command(self, host, port, username, password):
+    def execute_ssh_command(self, host, port, username, password, bash_script):
         """Выполнение SSH-команды"""
         try:
             # Создаем SSH-клиент
@@ -165,7 +185,7 @@ ps aux | head -n 10
             self.update_status("Connected. Running script...")
             
             # Выполняем скрипт
-            stdin, stdout, stderr = client.exec_command(self.bash_script)
+            stdin, stdout, stderr = client.exec_command(bash_script)
             
             # Читаем вывод
             output = stdout.read().decode('utf-8', errors='ignore')
@@ -217,6 +237,10 @@ ps aux | head -n 10
         self.start_button1.config(state="normal")
         self.start_button2.config(state="normal")
         self.start_button3.config(state="normal")
+        self.ssh_change.set(False)
+        if self.new_port is not None:
+            self.port_entry.delete(0,tk.END)
+            self.port_entry.insert(0,self.new_port)
     
     def clear_output(self):
         """Очистка текстового поля вывода"""

@@ -5,17 +5,11 @@ set -euo pipefail ; # <- this semicolon and comment make options apply
 # even when script is corrupt by CRLF line terminators
 # empty line must follow this comment for immediate fail with CRLF newlines
 
-if (( $EUID != 0 )); then
-    echo "USER IS NOT ROOT" >&2 
-	exit 1
+
+
+if [ -z $SSHPORT ]; then
+	SSHPORT='22'
 fi
-
-
-# Checking if the OS version is correct
-grep -q -e 'PRETTY_NAME="Ubuntu 24' -e 'PRETTY_NAME=Debian 13' /etc/os-release || \
-(echo "Error: Incompatible OS version" 1>&2 && exit 1)
-
-SSHPORT='22'
 VPNIP4='192.168.75.0/24'
 VPNGW4='192.168.75.1'
 VPNIP6='fda9:4efe:7e3b:03ea::/48'
@@ -29,9 +23,14 @@ PUBIP=$(ip route | tr -d [:cntrl:] | sed -E "s/^default via (.*) dev (.*) proto 
 #PUBHOST='abcname.local'
 PUBHOST=$PUBIP
 
+if (( $EUID != 0 )); then
+    echo "USER IS NOT ROOT" >&2 
+	exit 1
+fi
 
-
-echo 'START 0.1'
+# Checking if the OS version is correct
+grep -q -e 'PRETTY_NAME="Ubuntu 24' -e 'PRETTY_NAME=Debian 13' /etc/os-release || \
+(echo "Error: Incompatible OS version" 1>&2 && exit 1)
 
 arch="$(uname -m)"
 
@@ -253,6 +252,7 @@ Port:           443
 Host:           ${PUBHOST}
 User1 login:    ${USER1}
 User1 password: ${PASS1}
+SSH port:       ${SSHPORT}
 
 EOF
 
